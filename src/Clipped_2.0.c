@@ -158,10 +158,6 @@ void updateBigDigits(int val) {
     for (i=0; i<2; i++) {
         // Apply offsets
         layer_set_frame(bitmap_layer_get_layer(bigSlot[i].layer), bigSlot[i].frame);
-		//        if (bigSlot[i].curDigit != bigSlot[i].prevDigit) {
-            // if the digit has changed, add the image layer again
-			//            layer_add_child(&bigSlot[i].layer, &bigSlot[i].bmpLayer.layer.layer);
-			//        }
     }
 }
 
