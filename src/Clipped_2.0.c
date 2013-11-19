@@ -9,7 +9,8 @@
 #define LANG_FRENCH 2
 #define LANG_GERMAN 3
 #define LANG_SPANISH 4
-#define LANG_MAX 5
+#define LANG_PORTUGUESE 5
+#define LANG_MAX 6
 
 // Compilation flags
 // Show minutes as the big digits instead of hours
@@ -65,6 +66,8 @@ const char weekDay[7][3] = {
 	"son", "mon", "die", "mit", "don", "fre", "sam"	// German
 #elif LANG_CUR == LANG_SPANISH
 	"dom", "lun", "mar", "mie", "jue", "vie", "sab"	// Spanish
+#elif LANG_CUR == LANG_PORTUGUESE
+	"dom", "seg", "ter", "qua", "qui", "sex", "sab"	// Portuguese
 #else // Fallback to debug strings
 	"abc", "def", "ghi", "klm", "nop", "qrs", "tuv"	// Debug
 #endif
