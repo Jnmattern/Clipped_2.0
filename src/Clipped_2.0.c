@@ -1,29 +1,25 @@
 #include <pebble.h>
 
-#define TRUE  1
-#define FALSE 0
-
 // Languages
 #define LANG_DUTCH 0
 #define LANG_ENGLISH 1
 #define LANG_FRENCH 2
 #define LANG_GERMAN 3
 #define LANG_SPANISH 4
-#define LANG_MAX 5
+#define LANG_PORTUGUESE 5
+#define LANG_MAX 6
+
+enum {
+	CONFIG_KEY_DATEORDER = 0,
+	CONFIG_KEY_WEEKDAY = 1,
+	CONFIG_KEY_LANG = 2,
+	CONFIG_KEY_BIGMINUTES = 3,
+	CONFIG_KEY_SHOWDATE = 4
+};
 
 // Compilation flags
-// Show minutes as the big digits instead of hours
-#define BIGMINUTES FALSE
-// Shows the date is US format mm/dd instead of dd/mm
-#define USDATE FALSE
-// Shows the date as day of week/month instead of dd/mm or mm/dd
-#define WEEKDAY FALSE
-// Displays the small digits in white instead of black
 #define SMALLDIGITS_WHITE FALSE
-// Display date
-#define SHOW_DATE TRUE
-// Language for the day of the week
-#define LANG_CUR LANG_ENGLISH
+
 // Screen dimensions
 #define SCREENW 144
 #define SCREENH 168
@@ -40,11 +36,10 @@
 #define BIGDIGITS_PADDING 6
 
 
-#if SHOW_DATE
-	#define VOFFSET 0
-#else
-	#define VOFFSET 15
-#endif
+#define VOFFSET_DATE 0
+#define VOFFSET_NODATE 15
+
+int vOffset = VOFFSET_DATE;
 
 // IDs of the images for the big digits
 const int digitImage[10] = {
@@ -54,21 +49,23 @@ const int digitImage[10] = {
 };
 
 // Days of the week in all languages
-const char weekDay[7][3] = {
-#if LANG_CUR == LANG_DUTCH
-	"zon", "maa", "din", "woe", "don", "vri", "zat"	// Dutch
-#elif LANG_CUR == LANG_ENGLISH
-	"sun", "mon", "tue", "wed", "thu", "fri", "sat"	// English
-#elif LANG_CUR == LANG_FRENCH
-	"dim", "lun", "mar", "mer", "jeu", "ven", "sam"	// French
-#elif LANG_CUR == LANG_GERMAN
-	"son", "mon", "die", "mit", "don", "fre", "sam"	// German
-#elif LANG_CUR == LANG_SPANISH
-	"dom", "lun", "mar", "mie", "jue", "vie", "sab"	// Spanish
-#else // Fallback to debug strings
-	"abc", "def", "ghi", "klm", "nop", "qrs", "tuv"	// Debug
-#endif
+const char weekDay[LANG_MAX][7][3] = {
+	{ "zon", "maa", "din", "woe", "don", "vri", "zat" },		// Dutch
+	{ "sun", "mon", "tue", "wed", "thu", "fri", "sat" },		// English
+	{ "dim", "lun", "mar", "mer", "jeu", "ven", "sam" },		// French
+	{ "son", "mon", "die", "mit", "don", "fre", "sam" },		// German
+	{ "dom", "lun", "mar", "mie", "jue", "vie", "sab" },		// Spanish
+	{ "dom", "seg", "ter", "qua", "qui", "sex", "sab" }		// Portuguese
 };
+
+char buffer[256] = "";
+int curLang = LANG_ENGLISH;
+int showWeekday = 1;
+int USDate = 1;
+int showDate = 1;
+int bigMinutes = 0;
+
+int configChanged = false;
 
 // Structure to hold informations for the two big digits
 typedef struct {
@@ -86,6 +83,8 @@ typedef struct {
 
 // Main window
 Window *window;
+// Main window layer
+Layer *rootLayer;
 // Background layer which will receive the update events
 Layer *bgLayer;
 // the two big digits structures
@@ -93,7 +92,7 @@ bigDigit bigSlot[2];
 // TextLayers for the small digits and the date
 // There are 5 layers for the small digits to simulate outliningof the font (4 layers to the back & 1 to the front)
 #define SMALLDIGITSLAYERS_NUM 5
-TextLayer *smallDigitLayer[SMALLDIGITSLAYERS_NUM], *dateLayer;
+TextLayer *smallDigitLayer[SMALLDIGITSLAYERS_NUM], *dateLayer = NULL;
 // The custom font
 GFont customFont;
 // String for the small digits
@@ -177,7 +176,7 @@ void updateSmallDigits(int val) {
 void setHM(struct tm *tm) {
 	int h;
 	
-	if (tm->tm_hour != last.tm_hour) {
+	if ((tm->tm_hour != last.tm_hour) || configChanged) {
 		h= tm->tm_hour;
         if (clock12) {
             h = h%12;
@@ -187,81 +186,79 @@ void setHM(struct tm *tm) {
 		}
         
         // Hour digits
-#if BIGMINUTES
-        // Set small digits string to hours
-        updateSmallDigits(h);
-#else
-        // Set big digits to hours
-        updateBigDigits(h);
-#endif
+		if (bigMinutes) {
+			// Set small digits string to hours
+			updateSmallDigits(h);
+		} else {
+			// Set big digits to hours
+			updateBigDigits(h);
+		}
 	}
 
-	if (tm->tm_min != last.tm_min) {
-#if BIGMINUTES
-        // Set big digits to minutes
-        updateBigDigits(tm->tm_min);
-#else
-        // Set small digits string to minutes
-        updateSmallDigits(tm->tm_min);
-#endif
+	if ((tm->tm_min != last.tm_min) || configChanged) {
+		if (bigMinutes) {
+			// Set big digits to minutes
+			updateBigDigits(tm->tm_min);
+		} else {
+			// Set small digits string to minutes
+			updateSmallDigits(tm->tm_min);
+		}
 	}
 
-#if SHOW_DATE
-	if (tm->tm_mday != last.tm_mday) {
-        // Date Layer string formatting
-        
-        // Get day of month
-    	D[0] = (char)(tm->tm_mday/10);
-    	D[1] = (char)(tm->tm_mday%10);
+	if (showDate) {
+		if ((tm->tm_mday != last.tm_mday) || configChanged) {
+			// Date Layer string formatting
+			
+			// Get day of month
+			D[0] = (char)(tm->tm_mday/10);
+			D[1] = (char)(tm->tm_mday%10);
 
-        // Get month num
-		if (tm->tm_mon != last.tm_mon) {
-            M[0] = (char)((tm->tm_mon+1)/10);
-            M[1] = (char)((tm->tm_mon+1)%10);
-        }
-        
-        // Get day of week
-        if (tm->tm_wday != last.tm_wday) {
-            wd = tm->tm_wday;
-        }
+			// Get month num
+			if ((tm->tm_mon != last.tm_mon) || configChanged) {
+				M[0] = (char)((tm->tm_mon+1)/10);
+				M[1] = (char)((tm->tm_mon+1)%10);
+			}
+			
+			// Get day of week
+			if ((tm->tm_wday != last.tm_wday) || configChanged) {
+				wd = tm->tm_wday;
+			}
 
-#if WEEKDAY
-        // Day of week formatting : "www dd"
-        date[0] = weekDay[wd][0];
-        date[1] = weekDay[wd][1];
-        date[2] = weekDay[wd][2];
-        date[3] = ' ';
-        date[4] = '0' + D[0];
-        date[5] = '0' + D[1];
-        date[6] = (char)0;
-#else //WEEKDAY
-#if USDATE
-        // US date formatting : "mm dd"
-        date[0] = '0' + M[0];
-        date[1] = '0' + M[1];
-        date[2] = ' ';
-        date[3] = '0' + D[0];
-        date[4] = '0' + D[1];
-#else // USDATE
-        // EU date formatting : "dd mm"
-        date[0] = '0' + D[0];
-        date[1] = '0' + D[1];
-        date[2] = ' ';
-        date[3] = '0' + M[0];
-        date[4] = '0' + M[1];
-#endif // USDATE
-        date[5] = (char)0;
-#endif // WEEKDAY
-        // Set date TextLayers's text, this triggers a redraw
-        text_layer_set_text(dateLayer, date);
-    }
-#endif // SHOW_DATE
+			if (showWeekday) {
+				// Day of week formatting : "www dd"
+				date[0] = weekDay[curLang][wd][0];
+				date[1] = weekDay[curLang][wd][1];
+				date[2] = weekDay[curLang][wd][2];
+				date[3] = ' ';
+				date[4] = '0' + D[0];
+				date[5] = '0' + D[1];
+				date[6] = (char)0;
+			} else {
+				if (USDate) {
+					// US date formatting : "mm dd"
+					date[0] = '0' + M[0];
+					date[1] = '0' + M[1];
+					date[2] = ' ';
+					date[3] = '0' + D[0];
+					date[4] = '0' + D[1];
+				} else {
+					// EU date formatting : "dd mm"
+					date[0] = '0' + D[0];
+					date[1] = '0' + D[1];
+					date[2] = ' ';
+					date[3] = '0' + M[0];
+					date[4] = '0' + M[1];
+				} // if (USDate)
+				date[5] = (char)0;
+			} // if (showWeekday)
+			// Set date TextLayers's text, this triggers a redraw
+			text_layer_set_text(dateLayer, date);
+		}
+	} // if (showDate)
 	
-	// Claim for a redraw
-    //layer_mark_dirty(&bgLayer);
-
     // Backup current time
 	last = *tm;
+	configChanged = false;
 }
 
 // time event handler, triggered every minute
@@ -269,16 +266,155 @@ void handle_tick(struct tm *tick_time, TimeUnits units_changed) {
 	setHM(tick_time);
 }
 
+void createDateLayer(void) {
+	GRect b;
+	if (dateLayer == NULL) {
+		vOffset = VOFFSET_DATE;
+		b = layer_get_bounds(bgLayer);
+		b.origin.y = vOffset;
+		layer_set_bounds(bgLayer, b);
+		
+		dateLayer = text_layer_create(GRect(-20, 134, SCREENW+40, TEXTH));
+		text_layer_set_background_color(dateLayer, GColorClear);
+		text_layer_set_font(dateLayer, customFont);
+		text_layer_set_text_alignment(dateLayer, GTextAlignmentCenter);
+		text_layer_set_text_color(dateLayer, GColorWhite);
+		text_layer_set_text(dateLayer, date);
+		layer_add_child(rootLayer, text_layer_get_layer(dateLayer));
+	}
+}
+
+void destroyDateLayer(void) {
+	GRect b;
+	if (dateLayer != NULL) {
+		vOffset = VOFFSET_NODATE;
+		b = layer_get_bounds(bgLayer);
+		b.origin.y = vOffset;
+		layer_set_bounds(bgLayer, b);
+		
+		text_layer_destroy(dateLayer);
+		dateLayer = NULL;
+	}
+}
+
+void applyConfig() {
+	int i;
+	
+	if (showDate) {
+		createDateLayer();
+	} else {
+		destroyDateLayer();
+	}
+	
+	for (i=0; i<SMALLDIGITSLAYERS_NUM; i++) {
+		if (bigMinutes) {
+			text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentLeft);
+		} else {
+			text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentRight);
+		}
+	}
+	
+	configChanged = true;
+	now = time(NULL);
+	setHM(localtime(&now));
+	
+	//	layer_mark_dirty(rootLayer);
+}
+
+void logVariables(const char *msg) {
+	snprintf(buffer, 256, "MSG: %s\n\tUSDate=%d\n\tshowWeekday=%d\n\tbigMinutes=%d\n\tshowDate=%d\n\tcurLang=%d\n", msg, USDate, showWeekday, bigMinutes, showDate, curLang);
+	
+	APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
+}
+
+void in_dropped_handler(AppMessageResult reason, void *context) {
+}
+
+void in_received_handler(DictionaryIterator *received, void *context) {
+	Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
+	Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
+	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
+	Tuple *bigminutes = dict_find(received, CONFIG_KEY_BIGMINUTES);
+	Tuple *showdate = dict_find(received, CONFIG_KEY_SHOWDATE);
+	int s1, s2, s3, s4, s5;
+	
+	if (dateorder && weekday && lang && bigminutes && showdate) {
+		s1 = persist_write_int(CONFIG_KEY_DATEORDER, dateorder->value->int32);
+		s2 = persist_write_int(CONFIG_KEY_WEEKDAY, weekday->value->int32);
+		s3 = persist_write_int(CONFIG_KEY_LANG, lang->value->int32);
+		s4 = persist_write_int(CONFIG_KEY_BIGMINUTES, bigminutes->value->int32);
+		s5 = persist_write_int(CONFIG_KEY_SHOWDATE, showdate->value->int32);
+		
+		snprintf(buffer, 256, "Persist_Write:\n\tUSDate=%d\n\tshowWeekday=%d\n\tbigMinutes=%d\n\tshowDate=%d\n\tcurLang=%d\n", s1, s2, s3, s4, s5);
+		
+		APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
+
+		USDate = dateorder->value->int32;
+		showWeekday = weekday->value->int32;
+		curLang = lang->value->int32;
+		bigMinutes = bigminutes->value->int32;
+		showDate = showdate->value->int32;
+
+		logVariables("ReceiveHandler");
+		
+		applyConfig();
+	}
+}
+
+void readConfig() {
+	if (persist_exists(CONFIG_KEY_DATEORDER)) {
+		USDate = persist_read_int(CONFIG_KEY_DATEORDER);
+	} else {
+		USDate = 1;
+	}
+	
+	if (persist_exists(CONFIG_KEY_WEEKDAY)) {
+		showWeekday = persist_read_int(CONFIG_KEY_WEEKDAY);
+	} else {
+		showWeekday = 1;
+	}
+	
+	if (persist_exists(CONFIG_KEY_LANG)) {
+		curLang = persist_read_int(CONFIG_KEY_LANG);
+	} else {
+		curLang = LANG_ENGLISH;
+	}
+	
+	if (persist_exists(CONFIG_KEY_BIGMINUTES)) {
+		bigMinutes = persist_read_int(CONFIG_KEY_BIGMINUTES);
+	} else {
+		bigMinutes = 0;
+	}
+	
+	if (persist_exists(CONFIG_KEY_SHOWDATE)) {
+		showDate = persist_read_int(CONFIG_KEY_SHOWDATE);
+	} else {
+		showDate = 1;
+	}
+	
+	logVariables("readConfig");
+	
+}
+
+static void app_message_init(void) {
+	app_message_register_inbox_received(in_received_handler);
+	app_message_register_inbox_dropped(in_dropped_handler);
+	app_message_open(64, 64);
+}
+
+
 // init handler
 void handle_init() {
     int i;
-	Layer *rootLayer;
    
     // Main Window
     window = window_create();
     window_stack_push(window, true /* Animated */);
     window_set_background_color(window, GColorBlack);
-    
+
+	app_message_init();
+	readConfig();
+	
 	// Get root layer
 	rootLayer = window_get_root_layer(window);
 	
@@ -289,7 +425,7 @@ void handle_init() {
 	clock12 = !clock_is_24h_style();
 
     // Big digits Background layer, used to trigger redraws
-    bgLayer = layer_create(GRect(0, VOFFSET, SCREENW, 168-VOFFSET));
+    bgLayer = layer_create(GRect(0, vOffset, SCREENW, 168-vOffset));
     layer_add_child(rootLayer, bgLayer);
     
     // Big digits structures & layers, childs of bgLayer
@@ -303,29 +439,23 @@ void handle_init() {
     
     // Small digits TextLayers
 	for (i=0; i<SMALLDIGITSLAYERS_NUM; i++) {
-    	smallDigitLayer[i] = text_layer_create(GRect(TEXTX+dx[i], VOFFSET+TEXTY+dy[i], TEXTW, TEXTH));
+    	smallDigitLayer[i] = text_layer_create(GRect(TEXTX+dx[i], vOffset+TEXTY+dy[i], TEXTW, TEXTH));
     	text_layer_set_background_color(smallDigitLayer[i], GColorClear);
     	text_layer_set_font(smallDigitLayer[i], customFont);
-#if BIGMINUTES
-        text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentLeft);
-#else
-        text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentRight);
-#endif
+		if (bigMinutes) {
+			text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentLeft);
+		} else {
+			text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentRight);
+		}
     	text_layer_set_text_color(smallDigitLayer[i], textColor[i]);
     	text_layer_set_text(smallDigitLayer[i], smallDigits);
-    	layer_add_child(rootLayer, text_layer_get_layer(smallDigitLayer[i]));
+    	layer_add_child(bgLayer, text_layer_get_layer(smallDigitLayer[i]));
 	}
 
-#if SHOW_DATE
-    // Date TextLayer
-    dateLayer = text_layer_create(GRect(-20, 134, SCREENW+40, TEXTH));
-    text_layer_set_background_color(dateLayer, GColorClear);
-    text_layer_set_font(dateLayer, customFont);
-    text_layer_set_text_alignment(dateLayer, GTextAlignmentCenter);
-    text_layer_set_text_color(dateLayer, GColorWhite);
-    text_layer_set_text(dateLayer, date);
-    layer_add_child(rootLayer, text_layer_get_layer(dateLayer));
-#endif
+	if (showDate) {
+		// Date TextLayer
+		createDateLayer();
+	}
 	
     // Init with current time
 	now = time(NULL);
@@ -341,9 +471,9 @@ void handle_deinit() {
 	
 	tick_timer_service_unsubscribe();
 
-#if SHOW_DATE
-	text_layer_destroy(dateLayer);
-#endif
+	if (showDate) {
+		text_layer_destroy(dateLayer);
+	}
 	
 	for (i=0; i<SMALLDIGITSLAYERS_NUM; i++) {
 		text_layer_destroy(smallDigitLayer[i]);

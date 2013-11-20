@@ -1,14 +1,21 @@
 {
   "uuid": "4b92dabd-6f7d-462c-879b-e21ae0dd69ef",
-  "shortName": "Clipped",
-  "longName": "Clipped",
+  "shortName": "Clipped 2.0",
+  "longName": "Clipped 2.0",
   "companyName": "Jnm",
   "versionCode": 2,
-  "versionLabel": "2.0",
+  "versionLabel": "2.0.1",
   "watchapp": {
     "watchface": true
   },
-  "appKeys": {},
+  "capabilities": [ "configurable" ],
+  "appKeys": {
+    "dateorder":	0,
+  	"weekday":		1,
+	"lang":			2,
+	"bigminutes":	3,
+	"showdate":		4
+  },
   "resources": {
     "media": [
       {
