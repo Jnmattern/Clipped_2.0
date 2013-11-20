@@ -8,7 +8,6 @@
 #define LANG_SPANISH 4
 #define LANG_PORTUGUESE 5
 #define LANG_MAX 6
-<<<<<<< HEAD
 
 enum {
 	CONFIG_KEY_DATEORDER = 0,
@@ -17,8 +16,6 @@ enum {
 	CONFIG_KEY_BIGMINUTES = 3,
 	CONFIG_KEY_SHOWDATE = 4
 };
-=======
->>>>>>> 616ef7b20e1e00adf503dce66e5312729b522f63
 
 // Compilation flags
 #define SMALLDIGITS_WHITE FALSE
@@ -52,7 +49,6 @@ const int digitImage[10] = {
 };
 
 // Days of the week in all languages
-<<<<<<< HEAD
 const char weekDay[LANG_MAX][7][3] = {
 	{ "zon", "maa", "din", "woe", "don", "vri", "zat" },		// Dutch
 	{ "sun", "mon", "tue", "wed", "thu", "fri", "sat" },		// English
@@ -60,24 +56,6 @@ const char weekDay[LANG_MAX][7][3] = {
 	{ "son", "mon", "die", "mit", "don", "fre", "sam" },		// German
 	{ "dom", "lun", "mar", "mie", "jue", "vie", "sab" },		// Spanish
 	{ "dom", "seg", "ter", "qua", "qui", "sex", "sab" }		// Portuguese
-=======
-const char weekDay[7][3] = {
-#if LANG_CUR == LANG_DUTCH
-	"zon", "maa", "din", "woe", "don", "vri", "zat"	// Dutch
-#elif LANG_CUR == LANG_ENGLISH
-	"sun", "mon", "tue", "wed", "thu", "fri", "sat"	// English
-#elif LANG_CUR == LANG_FRENCH
-	"dim", "lun", "mar", "mer", "jeu", "ven", "sam"	// French
-#elif LANG_CUR == LANG_GERMAN
-	"son", "mon", "die", "mit", "don", "fre", "sam"	// German
-#elif LANG_CUR == LANG_SPANISH
-	"dom", "lun", "mar", "mie", "jue", "vie", "sab"	// Spanish
-#elif LANG_CUR == LANG_PORTUGUESE
-	"dom", "seg", "ter", "qua", "qui", "sex", "sab"	// Portuguese
-#else // Fallback to debug strings
-	"abc", "def", "ghi", "klm", "nop", "qrs", "tuv"	// Debug
-#endif
->>>>>>> 616ef7b20e1e00adf503dce66e5312729b522f63
 };
 
 char buffer[256] = "";
