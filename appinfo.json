@@ -10,11 +10,11 @@
   },
   "capabilities": [ "configurable" ],
   "appKeys": {
-    "dateorder":	0,
-  	"weekday":		1,
-	"lang":			2,
-	"bigminutes":	3,
-	"showdate":		4
+    "dateorder":	90,
+  	"weekday":		91,
+	"lang":			92,
+	"bigminutes":	93,
+	"showdate":		94
   },
   "resources": {
     "media": [

@@ -27,7 +27,7 @@
         </div>
 
 		<div id="dateorder" data-role="fieldcontain">
-			<fieldset data-role="controlgroup" data-type="vertical">
+			<fieldset data-role="controlgroup" data-type="horizontal">
 				<legend>Date format</legend>
 
 <?php
