@@ -20,11 +20,11 @@
         <div class="ui-grid-a">
             <div class="ui-block-a">
                 <input id="cancel" type="submit" data-theme="c" data-icon="delete" data-iconpos="left"
-                value="Cancel">
+                value="Cancel" data-mini="true">
             </div>
             <div class="ui-block-b">
                 <input id="save" type="submit" data-theme="b" data-icon="check" data-iconpos="right"
-                value="Save">
+                value="Save" data-mini="true">
             </div>
         </div>
     </div>
@@ -34,7 +34,7 @@
             <label for="showdate">
                 Show Date
 			</label>
-            <select name="showdate" id="showdate" data-theme="" data-role="slider">
+            <select name="showdate" id="showdate" data-theme="" data-role="slider" data-mini="true">
 <?php
 	if (!isset($_GET['showdate'])) {
 		$showdate = 1;
@@ -55,7 +55,7 @@
         </div>
 
 		<div id="dateorder" data-role="fieldcontain">
-			<fieldset data-role="controlgroup" data-type="horizontal">
+			<fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
 				<legend>Date format</legend>
 
 <?php
@@ -83,7 +83,7 @@
             <label for="weekday">
                 Show day of week
             </label>
-            <select name="weekday" id="weekday" data-theme="" data-role="slider">
+            <select name="weekday" id="weekday" data-theme="" data-role="slider" data-mini="true">
 <?php
 	if (!isset($_GET['weekday'])) {
 		$weekday = 1;
@@ -107,7 +107,7 @@
             <label for="bigminutes">
                 Big Digits show Minutes
             </label>
-            <select name="bigminutes" id="bigminutes" data-theme="" data-role="slider">
+            <select name="bigminutes" id="bigminutes" data-theme="" data-role="slider" data-mini="true">
 <?php
 	if (!isset($_GET['bigminutes'])) {
 		$bigminutes = 0;
@@ -132,7 +132,7 @@
 			<label for="lang">
 				Language
 			</label>
-			<select id="lang" data-native-menu="true" name="lang">
+			<select id="lang" data-native-menu="true" name="lang" data-mini="true">
 
 <?php
 	$langs = array(
