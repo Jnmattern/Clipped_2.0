@@ -1,27 +1,8 @@
-var dateorder = localStorage.getItem("dateorder");
-if (!dateorder) {
-	dateorder = 1;
-}
-
-var weekday = localStorage.getItem("weekday");
-if (!weekday) {
-	weekday = 0;
-}
-
-var bigminutes = localStorage.getItem("bigminutes");
-if (!bigminutes) {
-	bigminutes = 0;
-}
-
-var showdate = localStorage.getItem("showdate");
-if (!showdate) {
-	showdate = 1;
-}
-
-var lang = localStorage.getItem("lang");
-if (!lang) {
-	lang = 1;
-}
+var dateorder = 0;
+var weekday = 0;
+var bigminutes = 0;
+var showdate = 0;
+var lang = 0;
 
 function logVariables() {
 	console.log("	dateorder: " + dateorder);
@@ -33,7 +14,35 @@ function logVariables() {
 
 Pebble.addEventListener("ready", function() {
 	console.log("Ready Event");
+	dateorder = localStorage.getItem("dateorder");
+	if (!dateorder) {
+		dateorder = 1;
+	}
+	
+	weekday = localStorage.getItem("weekday");
+	if (!weekday) {
+		weekday = 0;
+	}
+	
+	bigminutes = localStorage.getItem("bigminutes");
+	if (!bigminutes) {
+		bigminutes = 0;
+	}
+	
+	showdate = localStorage.getItem("showdate");
+	if (!showdate) {
+		showdate = 1;
+	}
+	
+	lang = localStorage.getItem("lang");
+	if (!lang) {
+		lang = 1;
+	}
+	
 	logVariables();
+						
+	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+',"bigminutes":'+bigminutes+',"showdate":'+showdate+'}'));
+
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {

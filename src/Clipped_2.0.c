@@ -327,37 +327,40 @@ void logVariables(const char *msg) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
 }
 
+bool checkAndSaveInt(int *var, int val, int key) {
+	if (*var != val) {
+		*var = val;
+		persist_write_int(key, val);
+		return true;
+	} else {
+		return false;
+	}
+}
+
 void in_dropped_handler(AppMessageResult reason, void *context) {
 }
 
 void in_received_handler(DictionaryIterator *received, void *context) {
+	bool somethingChanged = false;
+
 	Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
 	Tuple *weekday = dict_find(received, CONFIG_KEY_WEEKDAY);
 	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
 	Tuple *bigminutes = dict_find(received, CONFIG_KEY_BIGMINUTES);
 	Tuple *showdate = dict_find(received, CONFIG_KEY_SHOWDATE);
-	int s1, s2, s3, s4, s5;
 	
 	if (dateorder && weekday && lang && bigminutes && showdate) {
-		s1 = persist_write_int(CONFIG_KEY_DATEORDER, dateorder->value->int32);
-		s2 = persist_write_int(CONFIG_KEY_WEEKDAY, weekday->value->int32);
-		s3 = persist_write_int(CONFIG_KEY_LANG, lang->value->int32);
-		s4 = persist_write_int(CONFIG_KEY_BIGMINUTES, bigminutes->value->int32);
-		s5 = persist_write_int(CONFIG_KEY_SHOWDATE, showdate->value->int32);
+		somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
+		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
+		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
+		somethingChanged |= checkAndSaveInt(&bigMinutes, bigminutes->value->int32, CONFIG_KEY_BIGMINUTES);
+		somethingChanged |= checkAndSaveInt(&showDate, showdate->value->int32, CONFIG_KEY_SHOWDATE);
 		
-		snprintf(buffer, 256, "Persist_Write:\n\tUSDate=%d\n\tshowWeekday=%d\n\tbigMinutes=%d\n\tshowDate=%d\n\tcurLang=%d\n", s1, s2, s3, s4, s5);
-		
-		APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
-
-		USDate = dateorder->value->int32;
-		showWeekday = weekday->value->int32;
-		curLang = lang->value->int32;
-		bigMinutes = bigminutes->value->int32;
-		showDate = showdate->value->int32;
-
 		logVariables("ReceiveHandler");
 		
-		applyConfig();
+		if (somethingChanged) {
+			applyConfig();
+		}
 	}
 }
 

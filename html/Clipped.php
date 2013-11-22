@@ -14,16 +14,44 @@
 		<body>
 <div data-role="page" id="page1">
     <div data-theme="a" data-role="header" data-position="fixed">
-        <h3>Clipped Configuration</h3>
-    </div>
-    <div data-role="content">
+        <h3>
+            Clipped Configuration
+        </h3>
         <div class="ui-grid-a">
             <div class="ui-block-a">
-                <input id="cancel" value="Cancel" type="submit">
+                <input id="cancel" type="submit" data-theme="c" data-icon="delete" data-iconpos="left"
+                value="Cancel">
             </div>
             <div class="ui-block-b">
-                <input id="save" data-theme="a" value="Save" type="submit">
+                <input id="save" type="submit" data-theme="b" data-icon="check" data-iconpos="right"
+                value="Save">
             </div>
+        </div>
+    </div>
+    <div data-role="content">
+
+	<div data-role="fieldcontain">
+            <label for="showdate">
+                Show Date
+			</label>
+            <select name="showdate" id="showdate" data-theme="" data-role="slider">
+<?php
+	if (!isset($_GET['showdate'])) {
+		$showdate = 1;
+	} else {
+		$showdate = $_GET['showdate'];
+	}
+	
+	if ($showdate == 0) {
+		$s1 = " selected";
+		$s2 = "";
+	} else {
+		$s1 = "";
+		$s2 = " selected";
+	}
+	echo '<option value="0"' . $s1 .'>Off</option><option value="1"' . $s2 . '>On</option>';
+?>
+            </select>
         </div>
 
 		<div id="dateorder" data-role="fieldcontain">
@@ -99,33 +127,12 @@
             </select>
         </div>
 
-        <div data-role="fieldcontain">
-            <label for="showdate">
-                Show Date
-			</label>
-            <select name="showdate" id="showdate" data-theme="" data-role="slider">
-<?php
-	if (!isset($_GET['showdate'])) {
-		$showdate = 1;
-	} else {
-		$showdate = $_GET['showdate'];
-	}
-	
-	if ($showdate == 0) {
-		$s1 = " selected";
-		$s2 = "";
-	} else {
-		$s1 = "";
-		$s2 = " selected";
-	}
-	echo '<option value="0"' . $s1 .'>Off</option><option value="1"' . $s2 . '>On</option>';
-?>
-            </select>
-        </div>
 
-		<div id="lang" data-role="fieldcontain">
-			<fieldset data-role="controlgroup" data-type="vertical">
-				<legend>Language</legend>
+		<div data-role="fieldcontain">
+			<label for="lang">
+				Language
+			</label>
+			<select id="lang" data-native-menu="true" name="lang">
 
 <?php
 	$langs = array(
@@ -145,14 +152,14 @@
 	
 	foreach ($langs as $v => $n) {
 		if ($lang == $v) {
-			$s = " checked";
+			$s = " selected";
 		} else {
 			$s = "";
 		}
-		echo '<input id="lang' . $v . '" name="lang" value="' . $v . '" data-theme="" type="radio"' . $s . '><label for="lang' . $v . '">' . $n . '</label>';
+		echo '<option value="' . $v . '" ' . $s . '>' . $n . '</option>';
 	}
 	?>
-			</fieldset>
+			</select>
 		</div>
 
 	</div>
@@ -165,7 +172,7 @@
 			'weekday': parseInt($("#weekday").val(), 10),
 			'bigminutes': parseInt($("#bigminutes").val(), 10),
 			'showdate': parseInt($("#showdate").val(), 10),
-			'lang': parseInt($("input[name=lang]:checked").val(), 10),
+			'lang': parseInt($("#lang").val(), 10),
         }
         return options;
       }
