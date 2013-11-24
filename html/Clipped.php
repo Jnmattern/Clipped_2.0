@@ -54,6 +54,32 @@
             </select>
         </div>
 
+
+        <div data-role="fieldcontain">
+            <label for="bigminutes">
+                Big Digits show Minutes
+            </label>
+            <select name="bigminutes" id="bigminutes" data-theme="" data-role="slider" data-mini="true">
+<?php
+	if (!isset($_GET['bigminutes'])) {
+		$bigminutes = 0;
+	} else {
+		$bigminutes = $_GET['bigminutes'];
+	}
+	
+	if ($bigminutes == 0) {
+		$s1 = " selected";
+		$s2 = "";
+	} else {
+		$s1 = "";
+		$s2 = " selected";
+	}
+	echo '<option value="0"' . $s1 .'>Off</option><option value="1"' . $s2 . '>On</option>';
+?>
+            </select>
+        </div>
+
+	<div id="toggle">
 		<div id="dateorder" data-role="fieldcontain">
 			<fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
 				<legend>Date format</legend>
@@ -103,31 +129,6 @@
             </select>
         </div>
 
-        <div data-role="fieldcontain">
-            <label for="bigminutes">
-                Big Digits show Minutes
-            </label>
-            <select name="bigminutes" id="bigminutes" data-theme="" data-role="slider" data-mini="true">
-<?php
-	if (!isset($_GET['bigminutes'])) {
-		$bigminutes = 0;
-	} else {
-		$bigminutes = $_GET['bigminutes'];
-	}
-	
-	if ($bigminutes == 0) {
-		$s1 = " selected";
-		$s2 = "";
-	} else {
-		$s1 = "";
-		$s2 = " selected";
-	}
-	echo '<option value="0"' . $s1 .'>Off</option><option value="1"' . $s2 . '>On</option>';
-?>
-            </select>
-        </div>
-
-
 		<div data-role="fieldcontain">
 			<label for="lang">
 				Language
@@ -161,7 +162,7 @@
 	?>
 			</select>
 		</div>
-
+	</div>
 	</div>
 </div>
 
@@ -178,6 +179,14 @@
       }
 
       $().ready(function() {
+	$('#showdate').change(function() {
+		if ($('#showdate').val() == '1') {
+			$('div#toggle').prop("hidden", false);
+		} else {
+			$('div#toggle').prop("hidden", true);
+		}
+	});
+
         $("#cancel").click(function() {
           console.log("Cancel");
           document.location = "pebblejs://close#";
