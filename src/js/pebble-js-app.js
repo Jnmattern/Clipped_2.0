@@ -50,7 +50,7 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 	logVariables();
 						
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate );
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped_2.0.3.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate );
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {

@@ -7,7 +7,8 @@
 #define LANG_GERMAN 3
 #define LANG_SPANISH 4
 #define LANG_PORTUGUESE 5
-#define LANG_MAX 6
+#define LANG_SWEDISH 6
+#define LANG_MAX 7
 
 enum {
 	CONFIG_KEY_DATEORDER	= 90,
@@ -49,13 +50,14 @@ const int digitImage[10] = {
 };
 
 // Days of the week in all languages
-const char weekDay[LANG_MAX][7][3] = {
-	{ "zon", "maa", "din", "woe", "don", "vri", "zat" },		// Dutch
-	{ "sun", "mon", "tue", "wed", "thu", "fri", "sat" },		// English
-	{ "dim", "lun", "mar", "mer", "jeu", "ven", "sam" },		// French
-	{ "son", "mon", "die", "mit", "don", "fre", "sam" },		// German
-	{ "dom", "lun", "mar", "mie", "jue", "vie", "sab" },		// Spanish
-	{ "dom", "seg", "ter", "qua", "qui", "sex", "sab" }		// Portuguese
+const char weekDay[LANG_MAX][7][6] = {
+	{ "zon", "maa", "din", "woe", "don", "vri", "zat" },	// Dutch
+	{ "sun", "mon", "tue", "wed", "thu", "fri", "sat" },	// English
+	{ "dim", "lun", "mar", "mer", "jeu", "ven", "sam" },	// French
+	{ "son", "mon", "die", "mit", "don", "fre", "sam" },	// German
+	{ "dom", "lun", "mar", "mie", "jue", "vie", "sab" },	// Spanish
+	{ "dom", "seg", "ter", "qua", "qui", "sex", "sab" },	// Portuguese
+	{ "sön", "mån", "Tis", "ons", "tor", "fre", "lör" }		// Swedish
 };
 
 char buffer[256] = "";
@@ -69,16 +71,10 @@ int configChanged = false;
 
 // Structure to hold informations for the two big digits
 typedef struct {
-    // the Layer for the digit
-    BitmapLayer *layer;
-	// the bitmap to display
-	GBitmap *bitmap;
-    // the frame in which the layer is positionned
-    GRect frame;
-    // Current digit to display
-    int curDigit;
-    // Previous digit displayed
-    int prevDigit;
+	GBitmap *bitmap;	// the bitmap to display
+    GRect frame;		// the frame in which the layer is positionned
+    int curDigit;		// Current digit to display
+    int prevDigit;		// Previous digit displayed
 } bigDigit;
 
 // Main window
@@ -98,7 +94,7 @@ GFont customFont;
 // String for the small digits
 char smallDigits[] = "00";
 // String for the date
-char date[] = "000000";
+char date[12] = "012345678901";
 // various compute variables
 char D[2], M[2];
 int wd;
@@ -119,6 +115,17 @@ GColor textColor[SMALLDIGITSLAYERS_NUM] = { GColorWhite, GColorWhite, GColorWhit
 time_t now;
 struct tm *curTime, last = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "" };
 
+
+void bgLayerUpdateProc(struct Layer *layer, GContext* ctx) {
+	int i;
+	
+	for (i=0; i<2; i++) {
+		if (bigSlot[i].bitmap != NULL) {
+			graphics_draw_bitmap_in_rect(ctx, bigSlot[i].bitmap, bigSlot[i].frame);
+		}
+	}
+}
+
 // big digits update procedure
 void updateBigDigits(int val) {
     int i, width = BIGDIGITS_PADDING; // padding between the two big digits
@@ -138,9 +145,7 @@ void updateBigDigits(int val) {
 			if (bigSlot[i].bitmap != NULL) {
 				gbitmap_destroy(bigSlot[i].bitmap);
 			}
-			bigSlot[i].bitmap = gbitmap_create_with_resource(digitImage[bigSlot[i].curDigit]);
-			bitmap_layer_set_bitmap(bigSlot[i].layer, bigSlot[i].bitmap);
-			
+			bigSlot[i].bitmap = gbitmap_create_with_resource(digitImage[bigSlot[i].curDigit]);			
             bigSlot[i].frame = bigSlot[i].bitmap->bounds;
         }
         // Calculate the total width of the two digits so to center them afterwards:
@@ -149,15 +154,9 @@ void updateBigDigits(int val) {
     }
 
     // Offset the first digit to the left of half the calculated width starting from the middle of the screen
-    bigSlot[0].frame.origin.x = CX - width/2;
+    bigSlot[0].frame.origin.x = CX -( width/2);
     // Offset the second digit to the right of the first one
     bigSlot[1].frame.origin.x = bigSlot[0].frame.origin.x + bigSlot[0].frame.size.w + BIGDIGITS_PADDING;
-
-    // foreach big digit slot
-    for (i=0; i<2; i++) {
-        // Apply offsets
-        layer_set_frame(bitmap_layer_get_layer(bigSlot[i].layer), bigSlot[i].frame);
-    }
 }
 
 void updateSmallDigits(int val) {
@@ -226,30 +225,15 @@ void setHM(struct tm *tm) {
 
 			if (showWeekday) {
 				// Day of week formatting : "www dd"
-				date[0] = weekDay[curLang][wd][0];
-				date[1] = weekDay[curLang][wd][1];
-				date[2] = weekDay[curLang][wd][2];
-				date[3] = ' ';
-				date[4] = '0' + D[0];
-				date[5] = '0' + D[1];
-				date[6] = (char)0;
+				snprintf(date, 12, "%s %.2d", weekDay[curLang][wd], (int)tm->tm_mday);
 			} else {
 				if (USDate) {
 					// US date formatting : "mm dd"
-					date[0] = '0' + M[0];
-					date[1] = '0' + M[1];
-					date[2] = ' ';
-					date[3] = '0' + D[0];
-					date[4] = '0' + D[1];
+					snprintf(date, 12, "%.2d %.2d", (int)(tm->tm_mon+1), (int)tm->tm_mday);
 				} else {
 					// EU date formatting : "dd mm"
-					date[0] = '0' + D[0];
-					date[1] = '0' + D[1];
-					date[2] = ' ';
-					date[3] = '0' + M[0];
-					date[4] = '0' + M[1];
+					snprintf(date, 12, "%.2d %.2d", (int)tm->tm_mday, (int)(tm->tm_mon+1));
 				} // if (USDate)
-				date[5] = (char)0;
 			} // if (showWeekday)
 			// Set date TextLayers's text, this triggers a redraw
 			text_layer_set_text(dateLayer, date);
@@ -429,15 +413,13 @@ void handle_init() {
 
     // Big digits Background layer, used to trigger redraws
     bgLayer = layer_create(GRect(0, vOffset, SCREENW, 168-vOffset));
+    layer_set_update_proc(bgLayer, bgLayerUpdateProc);
     layer_add_child(rootLayer, bgLayer);
     
     // Big digits structures & layers, childs of bgLayer
     for (i=0; i<2; i++) {
         bigSlot[i].curDigit = -1;
-
-        bigSlot[i].layer = bitmap_layer_create(GRect(72*i, 0, 72, 138));
 		bigSlot[i].bitmap = NULL;
-        layer_add_child(bgLayer, bitmap_layer_get_layer(bigSlot[i].layer));
     }
     
     // Small digits TextLayers
@@ -483,8 +465,9 @@ void handle_deinit() {
 	}
 	
 	for (i=0; i<2; i++) {
-		gbitmap_destroy(bigSlot[i].bitmap);
-		bitmap_layer_destroy(bigSlot[i].layer);
+		if (bigSlot[i].bitmap != NULL) {
+			gbitmap_destroy(bigSlot[i].bitmap);
+		}
 	}
 	
 	layer_destroy(bgLayer);
