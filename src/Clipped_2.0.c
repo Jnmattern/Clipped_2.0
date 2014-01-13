@@ -113,7 +113,7 @@ GColor textColor[SMALLDIGITSLAYERS_NUM] = { GColorWhite, GColorWhite, GColorWhit
 
 // Current and previous timestamps, last defined to -1 to be sure to update at launch
 time_t now;
-struct tm *curTime, last = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "" };
+struct tm *curTime, last = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
 
 void bgLayerUpdateProc(struct Layer *layer, GContext* ctx) {
