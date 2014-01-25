@@ -154,9 +154,11 @@ void updateBigDigits(int val) {
     }
 
     // Offset the first digit to the left of half the calculated width starting from the middle of the screen
-    bigSlot[0].frame.origin.x = CX -( width/2);
+    bigSlot[0].frame.origin.x = CX - (width/2);
     // Offset the second digit to the right of the first one
     bigSlot[1].frame.origin.x = bigSlot[0].frame.origin.x + bigSlot[0].frame.size.w + BIGDIGITS_PADDING;
+	
+	layer_mark_dirty(bgLayer);
 }
 
 void updateSmallDigits(int val) {
@@ -176,7 +178,7 @@ void setHM(struct tm *tm) {
 	int h;
 	
 	if ((tm->tm_hour != last.tm_hour) || configChanged) {
-		h= tm->tm_hour;
+		h = tm->tm_hour;
         if (clock12) {
             h = h%12;
 			if (h == 0) {
