@@ -11,11 +11,12 @@
 #define LANG_MAX 7
 
 enum {
-	CONFIG_KEY_DATEORDER	= 90,
+	CONFIG_KEY_DATEORDER		= 90,
 	CONFIG_KEY_WEEKDAY		= 91,
 	CONFIG_KEY_LANG 		= 92,
 	CONFIG_KEY_BIGMINUTES 	= 93,
-	CONFIG_KEY_SHOWDATE 	= 94
+	CONFIG_KEY_SHOWDATE		= 94,
+	CONFIG_KEY_NEGATIVE		= 95,
 };
 
 // Compilation flags
@@ -57,7 +58,7 @@ const char weekDay[LANG_MAX][7][6] = {
 	{ "son", "mon", "die", "mit", "don", "fre", "sam" },	// German
 	{ "dom", "lun", "mar", "mie", "jue", "vie", "sab" },	// Spanish
 	{ "dom", "seg", "ter", "qua", "qui", "sex", "sab" },	// Portuguese
-	{ "sön", "mån", "Tis", "ons", "tor", "fre", "lör" }		// Swedish
+	{ "sön", "mån", "Tis", "ons", "tor", "fre", "lör" }	// Swedish
 };
 
 char buffer[256] = "";
@@ -66,6 +67,7 @@ int showWeekday = 1;
 int USDate = 1;
 int showDate = 1;
 int bigMinutes = 0;
+int negative = 0;
 
 int configChanged = false;
 
@@ -83,6 +85,8 @@ Window *window;
 Layer *rootLayer;
 // Background layer which will receive the update events
 Layer *bgLayer;
+// Inverter Layer to allow for negative
+InverterLayer *invLayer;
 // the two big digits structures
 bigDigit bigSlot[2];
 // TextLayers for the small digits and the date
@@ -283,6 +287,20 @@ void destroyDateLayer(void) {
 	}
 }
 
+void createInverterLayer() {
+	if (invLayer == NULL) {
+		invLayer = inverter_layer_create(layer_get_frame(bgLayer));
+		layer_add_child(rootLayer, inverter_layer_get_layer(invLayer));
+	}
+}
+
+void destroyInverterLayer() {
+	if (invLayer != NULL) {
+		inverter_layer_destroy(invLayer);
+		invLayer = NULL;
+	}
+}
+
 void applyConfig() {
 	int i;
 	
@@ -290,6 +308,12 @@ void applyConfig() {
 		createDateLayer();
 	} else {
 		destroyDateLayer();
+	}
+	
+	if (negative) {
+		createInverterLayer();
+	} else {
+		destroyInverterLayer();
 	}
 	
 	for (i=0; i<SMALLDIGITSLAYERS_NUM; i++) {
@@ -308,9 +332,7 @@ void applyConfig() {
 }
 
 void logVariables(const char *msg) {
-	snprintf(buffer, 256, "MSG: %s\n\tUSDate=%d\n\tshowWeekday=%d\n\tbigMinutes=%d\n\tshowDate=%d\n\tcurLang=%d\n", msg, USDate, showWeekday, bigMinutes, showDate, curLang);
-	
-	APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "%s\n\tUSDate=%d\n\tshowWeekday=%d\n\tbigMinutes=%d\n\tshowDate=%d\n\tcurLang=%d\n\tneg=%d\n", msg, USDate, showWeekday, bigMinutes, showDate, curLang, negative);
 }
 
 bool checkAndSaveInt(int *var, int val, int key) {
@@ -324,6 +346,7 @@ bool checkAndSaveInt(int *var, int val, int key) {
 }
 
 void in_dropped_handler(AppMessageResult reason, void *context) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Message Dropped");
 }
 
 void in_received_handler(DictionaryIterator *received, void *context) {
@@ -334,13 +357,15 @@ void in_received_handler(DictionaryIterator *received, void *context) {
 	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
 	Tuple *bigminutes = dict_find(received, CONFIG_KEY_BIGMINUTES);
 	Tuple *showdate = dict_find(received, CONFIG_KEY_SHOWDATE);
+	Tuple *neg = dict_find(received, CONFIG_KEY_NEGATIVE);
 	
-	if (dateorder && weekday && lang && bigminutes && showdate) {
+	if (dateorder && weekday && lang && bigminutes && showdate && neg) {
 		somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
 		somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
 		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
 		somethingChanged |= checkAndSaveInt(&bigMinutes, bigminutes->value->int32, CONFIG_KEY_BIGMINUTES);
 		somethingChanged |= checkAndSaveInt(&showDate, showdate->value->int32, CONFIG_KEY_SHOWDATE);
+		somethingChanged |= checkAndSaveInt(&negative, neg->value->int32, CONFIG_KEY_NEGATIVE);
 		
 		logVariables("ReceiveHandler");
 		
@@ -381,6 +406,12 @@ void readConfig() {
 		showDate = 1;
 	}
 	
+	if (persist_exists(CONFIG_KEY_NEGATIVE)) {
+		negative = persist_read_int(CONFIG_KEY_NEGATIVE);
+	} else {
+		negative = 1;
+	}
+	
 	logVariables("readConfig");
 	
 }
@@ -388,7 +419,7 @@ void readConfig() {
 static void app_message_init(void) {
 	app_message_register_inbox_received(in_received_handler);
 	app_message_register_inbox_dropped(in_dropped_handler);
-	app_message_open(64, 64);
+	app_message_open(128, 128);
 }
 
 
@@ -444,6 +475,10 @@ void handle_init() {
 		createDateLayer();
 	}
 	
+	if (negative) {
+		createInverterLayer();
+	}
+	
     // Init with current time
 	now = time(NULL);
 	setHM(localtime(&now));
@@ -458,8 +493,11 @@ void handle_deinit() {
 	
 	tick_timer_service_unsubscribe();
 
+	if (negative) {
+		destroyInverterLayer();
+	}
 	if (showDate) {
-		text_layer_destroy(dateLayer);
+		destroyDateLayer();
 	}
 	
 	for (i=0; i<SMALLDIGITSLAYERS_NUM; i++) {

@@ -3,6 +3,7 @@ var weekday = 0;
 var bigminutes = 0;
 var showdate = 0;
 var lang = 0;
+var negative = 0;
 
 function logVariables() {
 	console.log("	dateorder: " + dateorder);
@@ -10,6 +11,7 @@ function logVariables() {
 	console.log("	bigminutes: " + bigminutes);
 	console.log("	showdate: " + showdate);
 	console.log("	lang: " + lang);
+	console.log("	negative: " + negative);
 }
 
 Pebble.addEventListener("ready", function() {
@@ -39,9 +41,11 @@ Pebble.addEventListener("ready", function() {
 		lang = 1;
 	}
 	
+	negative = localStorage.getItem("negative");
+	
 	logVariables();
 						
-	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+',"bigminutes":'+bigminutes+',"showdate":'+showdate+'}'));
+	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+',"bigminutes":'+bigminutes+',"showdate":'+showdate+',"negative":'+negative+'}'));
 
 });
 
@@ -50,7 +54,7 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 	logVariables();
 						
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped_2.0.3.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate );
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped_2.1.0.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate + "&negative=" + negative);
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
@@ -75,4 +79,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
 
 	lang = configuration["lang"];
 	localStorage.setItem("lang", lang);
+						
+	negative = configuration["negative"];
+	localStorage.setItem("negative", negative);
 });
