@@ -167,6 +167,7 @@
 		1 => 'English',
 		2 => 'French',
 		3 => 'German',
+		7 => 'Italian',
 		5 => 'Portuguese',
 		4 => 'Spanish',
 		6 => 'Swedish'
