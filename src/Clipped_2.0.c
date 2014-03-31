@@ -42,6 +42,10 @@ enum {
 #define VOFFSET_DATE 0
 #define VOFFSET_NODATE 15
 
+#define BATTERY_STATUS_WIDTH 120
+#define BATTERY_STATUS_HEIGHT 68
+
+
 int vOffset = VOFFSET_DATE;
 
 // IDs of the images for the big digits
@@ -95,6 +99,8 @@ bigDigit bigSlot[2];
 // There are 5 layers for the small digits to simulate outliningof the font (4 layers to the back & 1 to the front)
 #define SMALLDIGITSLAYERS_NUM 5
 TextLayer *smallDigitLayer[SMALLDIGITSLAYERS_NUM], *dateLayer = NULL;
+// Battery status layer
+Layer *batteryLayer = NULL;
 // The custom font
 GFont customFont;
 // String for the small digits
@@ -122,7 +128,7 @@ time_t now;
 struct tm *curTime, last = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
 
-void bgLayerUpdateProc(struct Layer *layer, GContext* ctx) {
+static void bgLayerUpdateProc(struct Layer *layer, GContext* ctx) {
 	int i;
 	
 	for (i=0; i<2; i++) {
@@ -133,7 +139,7 @@ void bgLayerUpdateProc(struct Layer *layer, GContext* ctx) {
 }
 
 // big digits update procedure
-void updateBigDigits(int val) {
+static void updateBigDigits(int val) {
     int i, width = BIGDIGITS_PADDING; // padding between the two big digits
     int d[2];
 	
@@ -167,7 +173,7 @@ void updateBigDigits(int val) {
 	layer_mark_dirty(bgLayer);
 }
 
-void updateSmallDigits(int val) {
+static void updateSmallDigits(int val) {
     int i;
 
     smallDigits[0] = '0' + (char)(val/10);
@@ -180,7 +186,7 @@ void updateSmallDigits(int val) {
 }
 
 // global time variables handler
-void setHM(struct tm *tm) {
+static void setHM(struct tm *tm) {
 	int h;
 	
 	if ((tm->tm_hour != last.tm_hour) || configChanged) {
@@ -254,11 +260,11 @@ void setHM(struct tm *tm) {
 }
 
 // time event handler, triggered every minute
-void handle_tick(struct tm *tick_time, TimeUnits units_changed) {
+static void handle_tick(struct tm *tick_time, TimeUnits units_changed) {
 	setHM(tick_time);
 }
 
-void createDateLayer(void) {
+static void createDateLayer(void) {
 	GRect b;
 	if (dateLayer == NULL) {
 		vOffset = VOFFSET_DATE;
@@ -276,7 +282,7 @@ void createDateLayer(void) {
 	}
 }
 
-void destroyDateLayer(void) {
+static void destroyDateLayer(void) {
 	GRect b;
 	if (dateLayer != NULL) {
 		vOffset = VOFFSET_NODATE;
@@ -289,21 +295,21 @@ void destroyDateLayer(void) {
 	}
 }
 
-void createInverterLayer() {
+static void createInverterLayer() {
 	if (invLayer == NULL) {
 		invLayer = inverter_layer_create(layer_get_frame(bgLayer));
 		layer_add_child(rootLayer, inverter_layer_get_layer(invLayer));
 	}
 }
 
-void destroyInverterLayer() {
+static void destroyInverterLayer() {
 	if (invLayer != NULL) {
 		inverter_layer_destroy(invLayer);
 		invLayer = NULL;
 	}
 }
 
-void applyConfig() {
+static void applyConfig() {
 	int i;
 	
 	if (showDate) {
@@ -333,11 +339,11 @@ void applyConfig() {
 	//	layer_mark_dirty(rootLayer);
 }
 
-void logVariables(const char *msg) {
+static void logVariables(const char *msg) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "%s\n\tUSDate=%d\n\tshowWeekday=%d\n\tbigMinutes=%d\n\tshowDate=%d\n\tcurLang=%d\n\tneg=%d\n", msg, USDate, showWeekday, bigMinutes, showDate, curLang, negative);
 }
 
-bool checkAndSaveInt(int *var, int val, int key) {
+static bool checkAndSaveInt(int *var, int val, int key) {
 	if (*var != val) {
 		*var = val;
 		persist_write_int(key, val);
@@ -347,11 +353,11 @@ bool checkAndSaveInt(int *var, int val, int key) {
 	}
 }
 
-void in_dropped_handler(AppMessageResult reason, void *context) {
+static void in_dropped_handler(AppMessageResult reason, void *context) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "Message Dropped");
 }
 
-void in_received_handler(DictionaryIterator *received, void *context) {
+static void in_received_handler(DictionaryIterator *received, void *context) {
 	bool somethingChanged = false;
 
 	Tuple *dateorder = dict_find(received, CONFIG_KEY_DATEORDER);
@@ -377,7 +383,7 @@ void in_received_handler(DictionaryIterator *received, void *context) {
 	}
 }
 
-void readConfig() {
+static void readConfig() {
 	if (persist_exists(CONFIG_KEY_DATEORDER)) {
 		USDate = persist_read_int(CONFIG_KEY_DATEORDER);
 	} else {
@@ -424,9 +430,41 @@ static void app_message_init(void) {
 	app_message_open(128, 128);
 }
 
+static void destroyBatteryLayer(void *data) {
+	layer_destroy(batteryLayer);
+	batteryLayer = NULL;
+}
+
+static void batteryLayerUpdate(struct Layer *layer, GContext* ctx) {
+	static GRect r = { { 0, 0 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
+	static GRect t = { { 0, (BATTERY_STATUS_HEIGHT-54)/2 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
+	static BatteryChargeState chargeState;
+	char text[5] = "";
+	
+	chargeState = battery_state_service_peek();
+	snprintf(text, sizeof(text), "%d%%", chargeState.charge_percent);
+	
+	graphics_context_set_fill_color(ctx, GColorBlack);
+	graphics_fill_rect(ctx, r, 5, GCornersAll);
+	
+	graphics_context_set_text_color(ctx, GColorWhite);
+	graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD), t, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+}
+
+static void handle_tap(AccelAxisType axis, int32_t direction) {
+	static GRect r = { { (144-BATTERY_STATUS_WIDTH)/2, (168-BATTERY_STATUS_HEIGHT)/2 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
+
+	if (batteryLayer == NULL) {
+		batteryLayer = layer_create(r);
+		layer_set_update_proc(batteryLayer, batteryLayerUpdate);
+		layer_add_child(rootLayer, batteryLayer);
+		app_timer_register(4000, destroyBatteryLayer, NULL);
+	}
+}
+
 
 // init handler
-void handle_init() {
+static void handle_init() {
     int i;
    
     // Main Window
@@ -487,12 +525,16 @@ void handle_init() {
 
 	// Register for minutes ticks
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
+	
+	// Register tap handler
+	accel_tap_service_subscribe(handle_tap);
 }
 
 // deinit handler
-void handle_deinit() {
+static void handle_deinit() {
 	int i;
 	
+	accel_tap_service_unsubscribe();
 	tick_timer_service_unsubscribe();
 
 	if (negative) {
