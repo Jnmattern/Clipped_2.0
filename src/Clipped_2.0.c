@@ -42,8 +42,8 @@ enum {
 #define VOFFSET_DATE 0
 #define VOFFSET_NODATE 15
 
-#define BATTERY_STATUS_WIDTH 120
-#define BATTERY_STATUS_HEIGHT 68
+#define BATTERY_STATUS_WIDTH 76
+#define BATTERY_STATUS_HEIGHT 36
 
 
 int vOffset = VOFFSET_DATE;
@@ -437,7 +437,7 @@ static void destroyBatteryLayer(void *data) {
 
 static void batteryLayerUpdate(struct Layer *layer, GContext* ctx) {
 	static GRect r = { { 0, 0 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
-	static GRect t = { { 0, (BATTERY_STATUS_HEIGHT-54)/2 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
+	static GRect t = { { 0, (BATTERY_STATUS_HEIGHT-38)/2 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
 	static BatteryChargeState chargeState;
 	char text[5] = "";
 	
@@ -448,7 +448,7 @@ static void batteryLayerUpdate(struct Layer *layer, GContext* ctx) {
 	graphics_fill_rect(ctx, r, 5, GCornersAll);
 	
 	graphics_context_set_text_color(ctx, GColorWhite);
-	graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD), t, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+	graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK), t, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
 }
 
 static void handle_tap(AccelAxisType axis, int32_t direction) {
