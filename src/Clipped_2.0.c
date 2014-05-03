@@ -100,7 +100,7 @@ bigDigit bigSlot[2];
 #define SMALLDIGITSLAYERS_NUM 5
 TextLayer *smallDigitLayer[SMALLDIGITSLAYERS_NUM], *dateLayer = NULL;
 // Battery status layer
-Layer *batteryLayer = NULL;
+TextLayer *batteryLayer = NULL;
 // The custom font
 GFont customFont;
 // String for the small digits
@@ -430,34 +430,46 @@ static void app_message_init(void) {
 	app_message_open(128, 128);
 }
 
+static void createBatteryLayer() {
+	static BatteryChargeState chargeState;
+	static char text[] = "batt 100%";
+	GRect b;
+	
+	chargeState = battery_state_service_peek();
+	snprintf(text, sizeof(text), "batt %d%%", chargeState.charge_percent);
+
+	if (!showDate) {
+		vOffset = VOFFSET_DATE;
+		b = layer_get_bounds(bgLayer);
+		b.origin.y = vOffset;
+		layer_set_bounds(bgLayer, b);
+	}
+
+	batteryLayer = text_layer_create(GRect(-20, 134, SCREENW+40, TEXTH));
+	text_layer_set_background_color(batteryLayer, GColorBlack);
+	text_layer_set_font(batteryLayer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
+	text_layer_set_text_alignment(batteryLayer, GTextAlignmentCenter);
+	text_layer_set_text_color(batteryLayer, GColorWhite);
+	text_layer_set_text(batteryLayer, text);
+	layer_add_child(rootLayer, text_layer_get_layer(batteryLayer));
+}
+
 static void destroyBatteryLayer(void *data) {
-	layer_destroy(batteryLayer);
+	GRect b;
+	if (!showDate) {
+		vOffset = VOFFSET_NODATE;
+		b = layer_get_bounds(bgLayer);
+		b.origin.y = vOffset;
+		layer_set_bounds(bgLayer, b);
+	}
+	
+	text_layer_destroy(batteryLayer);
 	batteryLayer = NULL;
 }
 
-static void batteryLayerUpdate(struct Layer *layer, GContext* ctx) {
-	static GRect r = { { 0, 0 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
-	static GRect t = { { 0, (BATTERY_STATUS_HEIGHT-38)/2 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
-	static BatteryChargeState chargeState;
-	char text[5] = "";
-	
-	chargeState = battery_state_service_peek();
-	snprintf(text, sizeof(text), "%d%%", chargeState.charge_percent);
-	
-	graphics_context_set_fill_color(ctx, GColorBlack);
-	graphics_fill_rect(ctx, r, 5, GCornersAll);
-	
-	graphics_context_set_text_color(ctx, GColorWhite);
-	graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK), t, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
-}
-
 static void handle_tap(AccelAxisType axis, int32_t direction) {
-	static GRect r = { { (144-BATTERY_STATUS_WIDTH)/2, (168-BATTERY_STATUS_HEIGHT)/2 }, { BATTERY_STATUS_WIDTH, BATTERY_STATUS_HEIGHT } };
-
 	if (batteryLayer == NULL) {
-		batteryLayer = layer_create(r);
-		layer_set_update_proc(batteryLayer, batteryLayerUpdate);
-		layer_add_child(rootLayer, batteryLayer);
+		createBatteryLayer();
 		app_timer_register(4000, destroyBatteryLayer, NULL);
 	}
 }
