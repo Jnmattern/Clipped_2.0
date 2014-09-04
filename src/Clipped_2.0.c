@@ -9,7 +9,8 @@
 #define LANG_PORTUGUESE 5
 #define LANG_SWEDISH 6
 #define LANG_ITALIAN 7
-#define LANG_MAX 8
+#define LANG_DANISH 8
+#define LANG_MAX 9
 
 enum {
 	CONFIG_KEY_DATEORDER		= 90,
@@ -64,8 +65,10 @@ const char weekDay[LANG_MAX][7][6] = {
 	{ "dom", "lun", "mar", "mie", "jue", "vie", "sab" },	// Spanish
 	{ "dom", "seg", "ter", "qua", "qui", "sex", "sab" },	// Portuguese
 	{ "sön", "mån", "tis", "ons", "tor", "fre", "lör" },// Swedish
-	{ "dom", "lun", "mar", "mer", "gio", "ven", "sab" }	// Italian
+	{ "dom", "lun", "mar", "mer", "gio", "ven", "sab" },	// Italian
+	{ "søn", "man", "tir", "ons", "tor", "fre", "lør" }	// Danish
 };
+
 
 char buffer[256] = "";
 int curLang = LANG_ENGLISH;
