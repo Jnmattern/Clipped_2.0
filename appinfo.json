@@ -4,18 +4,20 @@
   "longName": "Clipped 2.0",
   "companyName": "Jnm",
   "versionCode": 2,
-  "versionLabel": "2.2",
+  "versionLabel": "2.4",
   "watchapp": {
     "watchface": true
   },
-  "capabilities": [ "configurable" ],
+  "capabilities": [
+    "configurable"
+  ],
   "appKeys": {
-    "dateorder":	90,
-  	"weekday":		91,
-	"lang":			92,
-	"bigminutes":	93,
-	"showdate":		94,
-	"negative":		95
+    "dateorder": 90,
+    "weekday": 91,
+    "lang": 92,
+    "bigminutes": 93,
+    "showdate": 94,
+    "negative": 95
   },
   "resources": {
     "media": [
@@ -81,5 +83,9 @@
         "file": "images/d9.png"
       }
     ]
-  }
+  },
+  "targetPlatforms": [
+    "aplite"
+  ],
+  "sdkVersion": "3"
 }
