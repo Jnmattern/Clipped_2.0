@@ -84,7 +84,7 @@ int showDate = 1;
 int bigMinutes = 0;
 int bluetoothStatus = 1;
 int negative = 0;
-static char themeCodeText[] = "c0fef8c0fd";
+static char themeCodeText[20] = "c0fef8c0fd";
 
 bool configChanged = false;
 bool lastBluetoothStatus = true;
