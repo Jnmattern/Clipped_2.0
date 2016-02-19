@@ -15,25 +15,31 @@
 enum {
   CONFIG_KEY_DATEORDER		= 90,
   CONFIG_KEY_WEEKDAY		= 91,
-  CONFIG_KEY_LANG 		= 92,
+  CONFIG_KEY_LANG       = 92,
   CONFIG_KEY_BIGMINUTES 	= 93,
   CONFIG_KEY_SHOWDATE		= 94,
-  CONFIG_KEY_NEGATIVE		= 95
+  CONFIG_KEY_NEGATIVE   = 95,
+  CONFIG_KEY_THEMECODE  = 96,
 };
 
-// Compilation flags
-#define SMALLDIGITS_WHITE FALSE
-
 // Screen dimensions
-#define SCREENW 144
-#define SCREENH 168
-#define CX      72
-#define CY      84
-
+#if defined(PBL_RECT)
+  #define SCREENW 144
+  #define SCREENH 168
+  #define CX      72
+  #define CY      84
+  #define TEXTX   1
+  #define TEXTW   142
+#elif defined(PBL_ROUND)
+  #define SCREENW 180
+  #define SCREENH 180
+  #define CX      90
+  #define CY      90
+  #define TEXTX   11
+  #define TEXTW   160
+#endif
 // Date Layer Frame
-#define TEXTX 1
 #define TEXTY 96
-#define TEXTW 142
 #define TEXTH 60
 
 // Space between big digits
@@ -76,8 +82,9 @@ int showWeekday = 1;
 int USDate = 1;
 int showDate = 1;
 int bigMinutes = 0;
-int negative = 0;
 int bluetoothStatus = 1;
+int negative = 0;
+static char themeCodeText[] = "c0fef8c0fd";
 
 bool configChanged = false;
 bool lastBluetoothStatus = true;
@@ -97,8 +104,6 @@ Window *window;
 Layer *rootLayer;
 // Background layer which will receive the update events
 Layer *bgLayer;
-// Inverter Layer to allow for negative
-InverterLayer *invLayer;
 // the two big digits structures
 bigDigit bigSlot[2];
 // TextLayers for the small digits and the date
@@ -128,16 +133,13 @@ bool clock12 = false;
 int dx[SMALLDIGITSLAYERS_NUM] = { -2, 2, 2, -2, 0 };
 int dy[SMALLDIGITSLAYERS_NUM] = { -2, -2, 2, 2, 0 };
 
-// Text colors for the SMALLDIGITSLAYERS_NUM TextLayers, depending on SMALLDIGITS_WHITE
-#if SMALLDIGITS_WHITE
-GColor textColor[SMALLDIGITSLAYERS_NUM] = { GColorBlack, GColorBlack, GColorBlack, GColorBlack, GColorWhite };
-#else
-GColor textColor[SMALLDIGITSLAYERS_NUM] = { GColorWhite, GColorWhite, GColorWhite, GColorWhite, GColorBlack };
-#endif
+GColor textColor[SMALLDIGITSLAYERS_NUM];
+GColor colors[5];
 
 // Current and previous timestamps, last defined to -1 to be sure to update at launch
 time_t now;
-struct tm *curTime, last = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+struct tm *curTime;
+struct tm last = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "tz" };
 
 
 static void bgLayerUpdateProc(struct Layer *layer, GContext* ctx) {
@@ -170,7 +172,9 @@ static void updateBigDigits(int val) {
         gbitmap_destroy(bigSlot[i].bitmap);
       }
       bigSlot[i].bitmap = gbitmap_create_with_resource(digitImage[bigSlot[i].curDigit]);
-      bigSlot[i].frame = bigSlot[i].bitmap->bounds;
+      bigSlot[i].frame = gbitmap_get_bounds(bigSlot[i].bitmap);
+
+      gbitmap_set_palette(bigSlot[i].bitmap, colors, false);
     }
     // Calculate the total width of the two digits so to center them afterwards:
     // they can be different widths so they're not aligned to the center of the screen
@@ -288,7 +292,7 @@ static void createDateLayer(void) {
     text_layer_set_background_color(dateLayer, GColorClear);
     text_layer_set_font(dateLayer, customFont);
     text_layer_set_text_alignment(dateLayer, GTextAlignmentCenter);
-    text_layer_set_text_color(dateLayer, GColorWhite);
+    text_layer_set_text_color(dateLayer, colors[4]);
     text_layer_set_text(dateLayer, date);
     layer_add_child(rootLayer, text_layer_get_layer(dateLayer));
   }
@@ -307,18 +311,57 @@ static void destroyDateLayer(void) {
   }
 }
 
-static void createInverterLayer() {
-  if (invLayer == NULL) {
-    invLayer = inverter_layer_create(layer_get_frame(bgLayer));
-    layer_add_child(rootLayer, inverter_layer_get_layer(invLayer));
+int hexCharToInt(const char digit) {
+  if ((digit >= '0') && (digit <= '9')) {
+    return (int)(digit - '0');
+  } else if ((digit >= 'a') && (digit <= 'f')) {
+    return 10 + (int)(digit - 'a');
+  } else if ((digit >= 'A') && (digit <= 'F')) {
+    return 10 + (int)(digit - 'A');
+  } else {
+    return -1;
   }
 }
 
-static void destroyInverterLayer() {
-  if (invLayer != NULL) {
-    inverter_layer_destroy(invLayer);
-    invLayer = NULL;
+int hexStringToByte(const char *hexString) {
+  int l = strlen(hexString);
+  if (l == 0) return 0;
+  if (l == 1) return hexCharToInt(hexString[0]);
+
+  return 16*hexCharToInt(hexString[0]) + hexCharToInt(hexString[1]);
+}
+
+void decodeThemeCode(char *code) {
+#if defined(PBL_COLOR)
+  int i;
+
+  for (i=0; i<5; i++) {
+    colors[i] = (GColor8){.argb=(uint8_t)hexStringToByte(code + 2*i)};
   }
+#endif
+}
+
+static void setColors() {
+#if defined(PBL_BW)
+  if (negative) {
+    colors[0] = GColorWhite;        // Background
+    colors[1] = GColorBlack; // Big digits
+    colors[2] = GColorBlack;          // Small digits
+    colors[3] = GColorWhite;        // Small digits outline
+    colors[4] = GColorBlack;         // Date
+  } else {
+    colors[0] = GColorBlack;        // Background
+    colors[1] = GColorWhite; // Big digits
+    colors[2] = GColorWhite;          // Small digits
+    colors[3] = GColorBlack;        // Small digits outline
+    colors[4] = GColorWhite;         // Date
+  }
+#elif defined(PBL_COLOR)
+  decodeThemeCode(themeCodeText);
+#endif
+
+  textColor[0] = textColor[1] = textColor[2] = textColor[3] = colors[3];
+  textColor[4] = colors[2];
 }
 
 static void applyConfig() {
@@ -330,18 +373,28 @@ static void applyConfig() {
     destroyDateLayer();
   }
 
-  if (negative) {
-    createInverterLayer();
-  } else {
-    destroyInverterLayer();
-  }
-
   for (i=0; i<SMALLDIGITSLAYERS_NUM; i++) {
     if (bigMinutes) {
       text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentLeft);
     } else {
       text_layer_set_text_alignment(smallDigitLayer[i], GTextAlignmentRight);
     }
+  }
+
+  setColors();
+
+  window_set_background_color(window, colors[0]);
+
+  for (i=0; i<SMALLDIGITSLAYERS_NUM; i++) {
+    text_layer_set_text_color(smallDigitLayer[i], textColor[i]);
+  }
+
+  if (dateLayer != NULL) {
+    text_layer_set_text_color(dateLayer, colors[4]);
+  }
+
+  if (infoLayer != NULL) {
+    text_layer_set_text_color(infoLayer, colors[4]);
   }
 
   configChanged = true;
@@ -352,7 +405,8 @@ static void applyConfig() {
 }
 
 static void logVariables(const char *msg) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s\n\tUSDate=%d\n\tshowWeekday=%d\n\tbigMinutes=%d\n\tshowDate=%d\n\tcurLang=%d\n\tneg=%d\n", msg, USDate, showWeekday, bigMinutes, showDate, curLang, negative);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s\n USDate=%d\n showWeekday=%d\n bigMinutes=%d", msg, USDate, showWeekday, bigMinutes);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, " showDate=%d\n curLang=%d\n negative=%d, themecode=%s", showDate, curLang, negative, themeCodeText);
 }
 
 static bool checkAndSaveInt(int *var, int val, int key) {
@@ -364,6 +418,25 @@ static bool checkAndSaveInt(int *var, int val, int key) {
     return false;
   }
 }
+
+bool checkAndSaveString(char *var, char *val, int key) {
+  int ret;
+
+  if (strcmp(var, val) != 0) {
+    strcpy(var, val);
+    ret = persist_write_string(key, val);
+    if (ret < (int)strlen(val)) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "checkAndSaveString() : persist_write_string(%d, %s) returned %d",
+              key, val, ret);
+    }
+    return true;
+  } else {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "checkAndSaveString() : value has not changed (was : %s, is : %s)",
+            var, val);
+    return false;
+  }
+}
+
 
 static void in_dropped_handler(AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Message Dropped");
@@ -378,14 +451,16 @@ static void in_received_handler(DictionaryIterator *received, void *context) {
   Tuple *bigminutes = dict_find(received, CONFIG_KEY_BIGMINUTES);
   Tuple *showdate = dict_find(received, CONFIG_KEY_SHOWDATE);
   Tuple *neg = dict_find(received, CONFIG_KEY_NEGATIVE);
+  Tuple *themeCodeTuple = dict_find(received, CONFIG_KEY_THEMECODE);
 
-  if (dateorder && weekday && lang && bigminutes && showdate && neg) {
+  if (dateorder && weekday && lang && bigminutes && showdate && neg && themeCodeTuple) {
     somethingChanged |= checkAndSaveInt(&USDate, dateorder->value->int32, CONFIG_KEY_DATEORDER);
     somethingChanged |= checkAndSaveInt(&showWeekday, weekday->value->int32, CONFIG_KEY_WEEKDAY);
     somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
     somethingChanged |= checkAndSaveInt(&bigMinutes, bigminutes->value->int32, CONFIG_KEY_BIGMINUTES);
     somethingChanged |= checkAndSaveInt(&showDate, showdate->value->int32, CONFIG_KEY_SHOWDATE);
     somethingChanged |= checkAndSaveInt(&negative, neg->value->int32, CONFIG_KEY_NEGATIVE);
+    somethingChanged |= checkAndSaveString(themeCodeText, themeCodeTuple->value->cstring, CONFIG_KEY_THEMECODE);
 
     logVariables("ReceiveHandler");
 
@@ -429,8 +504,16 @@ static void readConfig() {
   if (persist_exists(CONFIG_KEY_NEGATIVE)) {
     negative = persist_read_int(CONFIG_KEY_NEGATIVE);
   } else {
-    negative = 1;
+    negative = 0;
   }
+
+  if (persist_exists(CONFIG_KEY_THEMECODE)) {
+    persist_read_string(CONFIG_KEY_THEMECODE, themeCodeText, sizeof(themeCodeText));
+  } else {
+    strcpy(themeCodeText, "c0fef8c0fd");
+    persist_write_string(CONFIG_KEY_THEMECODE, themeCodeText);
+  }
+  decodeThemeCode(themeCodeText);
 
   logVariables("readConfig");
 
@@ -470,15 +553,12 @@ static void createInfoLayer(int what) {
   }
 
   infoLayer = text_layer_create(GRect(-20, 134, SCREENW+40, TEXTH));
-  text_layer_set_background_color(infoLayer, GColorBlack);
+  text_layer_set_background_color(infoLayer, colors[0]);
   text_layer_set_font(infoLayer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
   text_layer_set_text_alignment(infoLayer, GTextAlignmentCenter);
-  text_layer_set_text_color(infoLayer, GColorWhite);
+  text_layer_set_text_color(infoLayer, colors[4]);
   text_layer_set_text(infoLayer, text);
   layer_add_child(rootLayer, text_layer_get_layer(infoLayer));
-  if (invLayer != NULL) {
-    layer_insert_below_sibling	(text_layer_get_layer(infoLayer), inverter_layer_get_layer(invLayer));
-  }
 }
 
 static void destroyInfoLayer(void *data) {
@@ -525,13 +605,15 @@ static void handle_tap(AccelAxisType axis, int32_t direction) {
 static void handle_init() {
   int i;
 
+  readConfig();
+  app_message_init();
+
+  setColors();
+
   // Main Window
   window = window_create();
   window_stack_push(window, true /* Animated */);
-  window_set_background_color(window, GColorBlack);
-
-  readConfig();
-  app_message_init();
+  window_set_background_color(window, colors[0]);
 
   // Get root layer
   rootLayer = window_get_root_layer(window);
@@ -573,13 +655,11 @@ static void handle_init() {
     createDateLayer();
   }
 
-  if (negative) {
-    createInverterLayer();
-  }
-
   // Init with current time
   now = time(NULL);
   setHM(localtime(&now));
+
+  applyConfig();
 
   // Register for minutes ticks
   tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
@@ -600,9 +680,6 @@ static void handle_deinit() {
   accel_tap_service_unsubscribe();
   tick_timer_service_unsubscribe();
 
-  if (negative) {
-    destroyInverterLayer();
-  }
   if (showDate) {
     destroyDateLayer();
   }

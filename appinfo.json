@@ -1,10 +1,10 @@
 {
   "uuid": "4b92dabd-6f7d-462c-879b-e21ae0dd69ef",
-  "shortName": "Clipped 2.0",
-  "longName": "Clipped 2.0",
+  "shortName": "Clipped",
+  "longName": "Clipped",
   "companyName": "Jnm",
-  "versionCode": 2,
-  "versionLabel": "2.4",
+  "versionCode": 3,
+  "versionLabel": "3.0",
   "watchapp": {
     "watchface": true
   },
@@ -17,13 +17,14 @@
     "lang": 92,
     "bigminutes": 93,
     "showdate": 94,
-    "negative": 95
+    "negative": 95,
+    "themecode": 96
   },
   "resources": {
     "media": [
       {
         "menuIcon": true,
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_MENU_ICON",
         "file": "images/menu_icon.png"
       },
@@ -33,59 +34,71 @@
         "file": "fonts/BorisBlackBloxx.ttf"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D0",
+        "memoryFormat": "1BitPalette",
         "file": "images/d0.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D1",
+        "memoryFormat": "1BitPalette",
         "file": "images/d1.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D2",
+        "memoryFormat": "1BitPalette",
         "file": "images/d2.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D3",
+        "memoryFormat": "1BitPalette",
         "file": "images/d3.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D4",
+        "memoryFormat": "1BitPalette",
         "file": "images/d4.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D5",
+        "memoryFormat": "1BitPalette",
         "file": "images/d5.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D6",
+        "memoryFormat": "1BitPalette",
         "file": "images/d6.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D7",
+        "memoryFormat": "1BitPalette",
         "file": "images/d7.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D8",
+        "memoryFormat": "1BitPalette",
         "file": "images/d8.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "IMAGE_D9",
+        "memoryFormat": "1BitPalette",
         "file": "images/d9.png"
       }
     ]
   },
   "targetPlatforms": [
-    "aplite"
+    "aplite",
+    "basalt",
+    "chalk"
   ],
   "sdkVersion": "3"
 }

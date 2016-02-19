@@ -4,14 +4,39 @@ var bigminutes = 0;
 var showdate = 0;
 var lang = 0;
 var negative = 0;
+var themecode;
+
 
 function logVariables() {
+	console.log("Variables");
+
 	console.log("	dateorder: " + dateorder);
 	console.log("	weekday: " + weekday);
 	console.log("	bigminutes: " + bigminutes);
 	console.log("	showdate: " + showdate);
 	console.log("	lang: " + lang);
 	console.log("	negative: " + negative);
+  console.log("	themecode: " + themecode);
+}
+
+
+function isWatchColorCapable() {
+  if (typeof Pebble.getActiveWatchInfo === "function") {
+    try {
+      if (Pebble.getActiveWatchInfo().platform != 'aplite') {
+        return true;
+      } else {
+        return false;
+      }
+    } catch(err) {
+      console.log('ERROR calling Pebble.getActiveWatchInfo() : ' + JSON.stringify(err));
+      // Assuming Pebble App 3.0
+      return true;
+    }
+  } else {
+    return false;
+  }
+  //return ((typeof Pebble.getActiveWatchInfo === "function") && Pebble.getActiveWatchInfo().platform!='aplite');
 }
 
 Pebble.addEventListener("ready", function() {
@@ -36,16 +61,35 @@ Pebble.addEventListener("ready", function() {
 		showdate = 1;
 	}
 	
-	lang = localStorage.getItem("lang");
-	if (!lang) {
+  lang = localStorage.getItem("lang");
+  if (!lang) {
 		lang = 1;
-	}
-	
+  }
+
 	negative = localStorage.getItem("negative");
-	
+  if (negative != 1) {
+		negative = 0;
+	}
+
+  themecode = localStorage.getItem("themecode");
+  if (!themecode || (""+themecode == "None")) {
+    themecode = "c0fef8c0fd";
+  }
+
 	logVariables();
-						
-	Pebble.sendAppMessage(JSON.parse('{"dateorder":'+dateorder+',"weekday":'+weekday+',"lang":'+lang+',"bigminutes":'+bigminutes+',"showdate":'+showdate+',"negative":'+negative+'}'));
+
+  var msg = '{';
+  msg += '"dateorder":'+dateorder;
+  msg += ',"weekday":'+weekday;
+  msg += ',"lang":'+lang;
+  msg += ',"bigminutes":'+bigminutes;
+  msg += ',"showdate":'+showdate;
+  msg += ',"negative":'+negative;
+  msg += ',"themecode":"'+themecode+'"';
+  msg += '}';
+  console.log("Sending message to watch :");
+  console.log(" " + msg);
+	Pebble.sendAppMessage(JSON.parse(msg));
 
 });
 
@@ -54,15 +98,15 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 	logVariables();
 						
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped_2.2.php?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate + "&negative=" + negative);
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped_3.0.html?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate + "&negative=" + negative + "&themecode=" + themecode + "&colorCapable=" + isWatchColorCapable());
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
 	console.log("Configuration window closed");
 	console.log(e.type);
-	console.log(e.response);
+  console.log("Response: " + decodeURIComponent(e.response));
 
-	var configuration = JSON.parse(e.response);
+	var configuration = JSON.parse(decodeURIComponent(e.response));
 	Pebble.sendAppMessage(configuration);
 	
 	dateorder = configuration["dateorder"];
@@ -79,7 +123,10 @@ Pebble.addEventListener("webviewclosed", function(e) {
 
 	lang = configuration["lang"];
 	localStorage.setItem("lang", lang);
-						
+
 	negative = configuration["negative"];
 	localStorage.setItem("negative", negative);
+
+  themecode = configuration["themecode"];
+	localStorage.setItem("themecode", themecode);
 });
