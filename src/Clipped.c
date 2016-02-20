@@ -346,14 +346,14 @@ static void setColors() {
   if (negative) {
     colors[0] = GColorWhite;        // Background
     colors[1] = GColorBlack; // Big digits
-    colors[2] = GColorBlack;          // Small digits
-    colors[3] = GColorWhite;        // Small digits outline
+    colors[2] = GColorWhite;          // Small digits
+    colors[3] = GColorBlack;        // Small digits outline
     colors[4] = GColorBlack;         // Date
   } else {
     colors[0] = GColorBlack;        // Background
     colors[1] = GColorWhite; // Big digits
-    colors[2] = GColorWhite;          // Small digits
-    colors[3] = GColorBlack;        // Small digits outline
+    colors[2] = GColorBlack;          // Small digits
+    colors[3] = GColorWhite;        // Small digits outline
     colors[4] = GColorWhite;         // Date
   }
 #elif defined(PBL_COLOR)
