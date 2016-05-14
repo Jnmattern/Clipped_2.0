@@ -4,7 +4,7 @@
   "longName": "Clipped",
   "companyName": "Jnm",
   "versionCode": 3,
-  "versionLabel": "3.1",
+  "versionLabel": "3.2",
   "watchapp": {
     "watchface": true
   },
@@ -18,7 +18,8 @@
     "bigminutes": 93,
     "showdate": 94,
     "negative": 95,
-    "themecode": 96
+    "themecode": 96,
+    "btalert": 97
   },
   "resources": {
     "media": [

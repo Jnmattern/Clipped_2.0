@@ -5,6 +5,7 @@ var showdate = 0;
 var lang = 0;
 var negative = 0;
 var themecode;
+var btalert = 1;
 
 
 function logVariables() {
@@ -17,6 +18,7 @@ function logVariables() {
 	console.log("	lang: " + lang);
 	console.log("	negative: " + negative);
   console.log("	themecode: " + themecode);
+  console.log("	btalert: " + btalert);
 }
 
 
@@ -76,6 +78,12 @@ Pebble.addEventListener("ready", function() {
     themecode = "c0fef8c0fd";
   }
 
+	btalert = localStorage.getItem("btalert");
+  if (btalert != 0) {
+		btalert = 1;
+	}
+
+
 	logVariables();
 
   var msg = '{';
@@ -86,6 +94,7 @@ Pebble.addEventListener("ready", function() {
   msg += ',"showdate":'+showdate;
   msg += ',"negative":'+negative;
   msg += ',"themecode":"'+themecode+'"';
+  msg += ',"btalert":'+btalert;
   msg += '}';
   console.log("Sending message to watch :");
   console.log(" " + msg);
@@ -98,7 +107,7 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 	logVariables();
 						
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped_3.0.html?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate + "&negative=" + negative + "&themecode=" + themecode + "&colorCapable=" + isWatchColorCapable());
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/Clipped/Clipped_3.2.html?dateorder=" + dateorder + "&weekday=" + weekday + "&lang=" + lang + "&bigminutes=" + bigminutes + "&showdate=" + showdate + "&negative=" + negative + "&btalert=" + btalert + "&themecode=" + themecode + "&colorCapable=" + isWatchColorCapable());
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
@@ -129,4 +138,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
 
   themecode = configuration["themecode"];
 	localStorage.setItem("themecode", themecode);
+
+  btalert = configuration["btalert"];
+	localStorage.setItem("btalert", btalert);
 });

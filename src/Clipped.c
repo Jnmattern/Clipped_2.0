@@ -20,6 +20,7 @@ enum {
   CONFIG_KEY_SHOWDATE		= 94,
   CONFIG_KEY_NEGATIVE   = 95,
   CONFIG_KEY_THEMECODE  = 96,
+  CONFIG_KEY_BTALERT    = 97
 };
 
 // Screen dimensions
@@ -84,6 +85,7 @@ int showDate = 1;
 int bigMinutes = 0;
 int bluetoothStatus = 1;
 int negative = 0;
+int btalert = 1;
 static char themeCodeText[20] = "c0fef8c0fd";
 
 bool configChanged = false;
@@ -407,6 +409,7 @@ static void applyConfig() {
 static void logVariables(const char *msg) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "%s\n USDate=%d\n showWeekday=%d\n bigMinutes=%d", msg, USDate, showWeekday, bigMinutes);
   APP_LOG(APP_LOG_LEVEL_DEBUG, " showDate=%d\n curLang=%d\n negative=%d, themecode=%s", showDate, curLang, negative, themeCodeText);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, " btalert=%d", btalert);
 }
 
 static bool checkAndSaveInt(int *var, int val, int key) {
@@ -451,6 +454,7 @@ static void in_received_handler(DictionaryIterator *received, void *context) {
   Tuple *bigminutes = dict_find(received, CONFIG_KEY_BIGMINUTES);
   Tuple *showdate = dict_find(received, CONFIG_KEY_SHOWDATE);
   Tuple *neg = dict_find(received, CONFIG_KEY_NEGATIVE);
+  Tuple *bt = dict_find(received, CONFIG_KEY_BTALERT);
   Tuple *themeCodeTuple = dict_find(received, CONFIG_KEY_THEMECODE);
 
   if (dateorder && weekday && lang && bigminutes && showdate && neg && themeCodeTuple) {
@@ -460,6 +464,7 @@ static void in_received_handler(DictionaryIterator *received, void *context) {
     somethingChanged |= checkAndSaveInt(&bigMinutes, bigminutes->value->int32, CONFIG_KEY_BIGMINUTES);
     somethingChanged |= checkAndSaveInt(&showDate, showdate->value->int32, CONFIG_KEY_SHOWDATE);
     somethingChanged |= checkAndSaveInt(&negative, neg->value->int32, CONFIG_KEY_NEGATIVE);
+    somethingChanged |= checkAndSaveInt(&btalert, bt->value->int32, CONFIG_KEY_BTALERT);
     somethingChanged |= checkAndSaveString(themeCodeText, themeCodeTuple->value->cstring, CONFIG_KEY_THEMECODE);
 
     logVariables("ReceiveHandler");
@@ -505,6 +510,12 @@ static void readConfig() {
     negative = persist_read_int(CONFIG_KEY_NEGATIVE);
   } else {
     negative = 0;
+  }
+
+  if (persist_exists(CONFIG_KEY_BTALERT)) {
+    btalert = persist_read_int(CONFIG_KEY_BTALERT);
+  } else {
+    btalert = 1;
   }
 
   if (persist_exists(CONFIG_KEY_THEMECODE)) {
@@ -580,15 +591,17 @@ static void handle_bluetooth(bool connected) {
   } else {
     lastBluetoothStatus = connected;
 
-    if (infoLayer == NULL) {
-      if (connected) {
-        createInfoLayer(BLUETOOTH_ON);
-        vibes_double_pulse();
-      } else {
-        createInfoLayer(BLUETOOTH_OFF);
-        vibes_long_pulse();
+    if (btalert) {
+      if (infoLayer == NULL) {
+        if (connected) {
+          createInfoLayer(BLUETOOTH_ON);
+          vibes_double_pulse();
+        } else {
+          createInfoLayer(BLUETOOTH_OFF);
+          vibes_long_pulse();
+        }
+        app_timer_register(4000, destroyInfoLayer, NULL);
       }
-      app_timer_register(4000, destroyInfoLayer, NULL);
     }
   }
 }
